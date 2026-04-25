@@ -1,0 +1,6 @@
+id: entity_id
+label: Entity ID
+description: Identyfikator encji w systemie docelowym.
+format: string
+examples:
+  - "ENT-001122"

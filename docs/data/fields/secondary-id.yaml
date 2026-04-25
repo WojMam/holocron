@@ -1,0 +1,6 @@
+id: secondary_id
+label: Secondary ID
+description: Identyfikator pośredni uzyskiwany z bazy danych.
+format: string
+examples:
+  - "SID-987654"

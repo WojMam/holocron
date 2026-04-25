@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Holocron Flow Explorer</title>
+    <meta
+      name="description"
+      content="Statyczny eksplorator wiedzy o przepływach danych między systemami."
+    />
+    <link rel="stylesheet" href="./assets/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lunr/lunr.min.js"></script>
+  </head>
+  <body>
+    <div class="bg-layer" aria-hidden="true">
+      <span class="orb orb-a"></span>
+      <span class="orb orb-b"></span>
+      <span class="orb orb-c"></span>
+      <span class="noise"></span>
+    </div>
+    <header class="app-header">
+      <div>
+        <h1>Holocron Cards</h1>
+        <p class="subtitle">Biblioteka kart przepływów integracyjnych</p>
+      </div>
+      <div class="status" id="status-badge" aria-live="polite">Ładowanie danych...</div>
+    </header>
+
+    <section class="view-mode-bar" aria-label="Tryb przeglądania">
+      <button type="button" class="view-mode-btn active" data-view-mode="cards">Karty</button>
+      <button type="button" class="view-mode-btn" data-view-mode="fields">Pola</button>
+      <button type="button" class="view-mode-btn" data-view-mode="flows">Flow</button>
+    </section>
+
+    <main class="layout" id="app-root">
+      <aside class="panel left-panel elevated" aria-label="Katalog">
+        <label for="search-input" class="label" id="search-label">Szukaj kart</label>
+        <input id="search-input" type="search" placeholder="API, DB, MQ, XML, field..." autocomplete="off" />
+        <div id="kind-filter-wrap">
+          <label for="kind-filter" class="label">Typ</label>
+          <select id="kind-filter">
+            <option value="all">Wszystkie</option>
+            <option value="api">API</option>
+            <option value="db">DB</option>
+            <option value="mq">MQ</option>
+            <option value="xml">XML</option>
+          </select>
+        </div>
+        <nav>
+          <h2 id="catalog-title">Katalog kart</h2>
+          <ul id="catalog-list" class="entity-list"></ul>
+        </nav>
+      </aside>
+
+      <section class="panel center-panel elevated" aria-label="Płótno kart">
+        <div class="breadcrumbs" id="breadcrumbs" aria-label="Ścieżka"></div>
+        <div id="field-usage-banner" class="usage-banner hidden" aria-live="polite"></div>
+        <section class="center-split" aria-live="polite">
+          <section class="center-top">
+            <h2 id="selected-title">Wybrana karta</h2>
+            <div id="selected-card-panel" class="single-card-panel"></div>
+          </section>
+          <section class="center-bottom">
+            <h2 id="inspector-title">Szczegóły zaznaczenia</h2>
+            <div id="inspector-panel" class="inspector-panel">
+              <p class="meta">Kliknij element na karcie, aby zobaczyć szczegóły i użycia.</p>
+            </div>
+          </section>
+        </section>
+      </section>
+
+    </main>
+
+    <script src="./assets/app.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,32 @@
+id: db_find_by_primary_ref
+label: Zapytanie po Primary Ref
+kind: query
+technology: db
+description: Pobiera dane na podstawie Primary Ref.
+table: integration_lookup_x
+developerNotes: "Query wykonywane po otrzymaniu MQ."
+
+elements:
+  - id: primary_ref_input
+    label: Primary Ref
+    path: query.primaryRef
+    direction: input
+    importance: lineage
+    usageRole: lookup_key
+    semanticRef: primary_ref
+
+  - id: secondary_id_output
+    label: Secondary ID
+    path: result.secondaryId
+    direction: output
+    importance: lineage
+    usageRole: identifier
+    semanticRef: secondary_id
+
+  - id: reference_code_9_input
+    label: Reference Code 9
+    path: query.referenceCode9
+    direction: input
+    importance: lineage
+    usageRole: lookup_key
+    semanticRef: reference_code_9

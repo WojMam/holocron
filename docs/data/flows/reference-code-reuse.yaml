@@ -1,0 +1,25 @@
+id: reference_code_reuse
+label: Reuse Reference Code 9
+description: Pokazuje jak 9-znakowy numer trafia do API B/C oraz tabeli Y.
+
+steps:
+  - node: api_get_short_code
+    produces:
+      - reference_code_9
+
+  - node: api_use_reference_b
+    consumes:
+      - reference_code_9
+    produces:
+      - reference_code_9
+
+  - node: api_use_reference_c
+    consumes:
+      - reference_code_9
+    produces:
+      - reference_code_9
+
+  - node: db_store_reference_y
+    consumes:
+      - reference_code_9
+      - owner_name

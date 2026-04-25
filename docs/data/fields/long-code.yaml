@@ -1,0 +1,7 @@
+id: long_code
+label: Reference Code
+description: Długi kod referencyjny (np. 20 znaków).
+format: string
+length: 20
+examples:
+  - "LONG-CODE-1234567890"

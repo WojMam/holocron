@@ -1,0 +1,58 @@
+id: api_get_owner_by_entity_id
+label: Pobranie właściciela po Entity ID
+kind: endpoint
+technology: api
+description: Zwraca nazwę właściciela.
+uri: /api/entities/{entityId}/owner
+developerNotes: "Wynik biznesowy końcowy dla użytkownika."
+implementationFiles:
+  - role: endpoint_handler
+    label: Endpoint handler
+    path: src/test/java/com/example/integration/owner/OwnerEndpointHandler.java
+    details: Obsługuje wywołanie endpointu owner.
+  - role: response_model
+    label: Response model
+    path: src/test/java/com/example/integration/owner/model/OwnerResponse.java
+    details: Model odpowiedzi ownerName oraz pól pomocniczych.
+  - role: verification_step
+    label: Verification step
+    path: src/test/java/com/example/integration/owner/step/OwnerVerificationStep.java
+    details: Krok asercji wykorzystywany w scenariuszach.
+
+elements:
+  - id: entity_id_input
+    label: Entity ID
+    path: request.entityId
+    direction: input
+    importance: lineage
+    usageRole: lookup_key
+    semanticRef: entity_id
+
+  - id: owner_name_output
+    label: Owner Name
+    path: response.ownerName
+    direction: output
+    importance: lineage
+    usageRole: business_value
+    semanticRef: owner_name
+
+  - id: include_history_input
+    label: Include History
+    path: request.includeHistory
+    direction: input
+    importance: descriptive
+    usageRole: option
+
+  - id: source_channel_input
+    label: Source Channel
+    path: request.sourceChannel
+    direction: input
+    importance: descriptive
+    usageRole: context
+
+  - id: owner_status_output
+    label: Owner Status
+    path: response.ownerStatus
+    direction: output
+    importance: descriptive
+    usageRole: business_value

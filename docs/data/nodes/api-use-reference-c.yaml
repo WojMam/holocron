@@ -1,0 +1,384 @@
+id: api_use_reference_c
+label: Endpoint C używający Reference Code 9
+kind: endpoint
+technology: api
+description: Używa 9-znakowego numeru referencyjnego do pobrania danych.
+uri: /api/partner-c/reference/{code}
+developerNotes: "Drugi endpoint downstream."
+
+elements:
+  - id: reference_code_9_input
+    label: Reference Code 9
+    path: path.code
+    direction: input
+    importance: lineage
+    usageRole: lookup_key
+    semanticRef: reference_code_9
+
+  - id: partner_payload
+    label: Partner Payload
+    path: response.payload
+    direction: output
+    importance: descriptive
+
+  - id: ext_input_01
+    label: Extra Input 01
+    path: request.extraInput01
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_02
+    label: Extra Input 02
+    path: request.extraInput02
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_03
+    label: Extra Input 03
+    path: request.extraInput03
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_04
+    label: Extra Input 04
+    path: request.extraInput04
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_05
+    label: Extra Input 05
+    path: request.extraInput05
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_06
+    label: Extra Input 06
+    path: request.extraInput06
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_07
+    label: Extra Input 07
+    path: request.extraInput07
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_08
+    label: Extra Input 08
+    path: request.extraInput08
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_09
+    label: Extra Input 09
+    path: request.extraInput09
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_10
+    label: Extra Input 10
+    path: request.extraInput10
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_11
+    label: Extra Input 11
+    path: request.extraInput11
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_12
+    label: Extra Input 12
+    path: request.extraInput12
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_13
+    label: Extra Input 13
+    path: request.extraInput13
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_14
+    label: Extra Input 14
+    path: request.extraInput14
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_15
+    label: Extra Input 15
+    path: request.extraInput15
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_16
+    label: Extra Input 16
+    path: request.extraInput16
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_17
+    label: Extra Input 17
+    path: request.extraInput17
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_18
+    label: Extra Input 18
+    path: request.extraInput18
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_19
+    label: Extra Input 19
+    path: request.extraInput19
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_20
+    label: Extra Input 20
+    path: request.extraInput20
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_21
+    label: Extra Input 21
+    path: request.extraInput21
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_22
+    label: Extra Input 22
+    path: request.extraInput22
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_23
+    label: Extra Input 23
+    path: request.extraInput23
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_24
+    label: Extra Input 24
+    path: request.extraInput24
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_25
+    label: Extra Input 25
+    path: request.extraInput25
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_26
+    label: Extra Input 26
+    path: request.extraInput26
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_27
+    label: Extra Input 27
+    path: request.extraInput27
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_28
+    label: Extra Input 28
+    path: request.extraInput28
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_29
+    label: Extra Input 29
+    path: request.extraInput29
+    direction: input
+    importance: descriptive
+    usageRole: context
+  - id: ext_input_30
+    label: Extra Input 30
+    path: request.extraInput30
+    direction: input
+    importance: descriptive
+    usageRole: context
+
+  - id: ext_output_01
+    label: Extra Output 01
+    path: response.extraOutput01
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_02
+    label: Extra Output 02
+    path: response.extraOutput02
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_03
+    label: Extra Output 03
+    path: response.extraOutput03
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_04
+    label: Extra Output 04
+    path: response.extraOutput04
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_05
+    label: Extra Output 05
+    path: response.extraOutput05
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_06
+    label: Extra Output 06
+    path: response.extraOutput06
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_07
+    label: Extra Output 07
+    path: response.extraOutput07
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_08
+    label: Extra Output 08
+    path: response.extraOutput08
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_09
+    label: Extra Output 09
+    path: response.extraOutput09
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_10
+    label: Extra Output 10
+    path: response.extraOutput10
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_11
+    label: Extra Output 11
+    path: response.extraOutput11
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_12
+    label: Extra Output 12
+    path: response.extraOutput12
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_13
+    label: Extra Output 13
+    path: response.extraOutput13
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_14
+    label: Extra Output 14
+    path: response.extraOutput14
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_15
+    label: Extra Output 15
+    path: response.extraOutput15
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_16
+    label: Extra Output 16
+    path: response.extraOutput16
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_17
+    label: Extra Output 17
+    path: response.extraOutput17
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_18
+    label: Extra Output 18
+    path: response.extraOutput18
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_19
+    label: Extra Output 19
+    path: response.extraOutput19
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_20
+    label: Extra Output 20
+    path: response.extraOutput20
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_21
+    label: Extra Output 21
+    path: response.extraOutput21
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_22
+    label: Extra Output 22
+    path: response.extraOutput22
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_23
+    label: Extra Output 23
+    path: response.extraOutput23
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_24
+    label: Extra Output 24
+    path: response.extraOutput24
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_25
+    label: Extra Output 25
+    path: response.extraOutput25
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_26
+    label: Extra Output 26
+    path: response.extraOutput26
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_27
+    label: Extra Output 27
+    path: response.extraOutput27
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_28
+    label: Extra Output 28
+    path: response.extraOutput28
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_29
+    label: Extra Output 29
+    path: response.extraOutput29
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+  - id: ext_output_30
+    label: Extra Output 30
+    path: response.extraOutput30
+    direction: output
+    importance: descriptive
+    usageRole: business_value

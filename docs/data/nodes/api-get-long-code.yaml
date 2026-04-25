@@ -1,0 +1,16 @@
+id: api_get_long_code
+label: Pobranie długiego kodu
+kind: endpoint
+technology: api
+description: Zwraca długi kod referencyjny.
+uri: /api/reference/long-code
+developerNotes: "Ta sama etykieta co short_code, inny semanticRef."
+
+elements:
+  - id: long_code_output
+    label: Reference Code
+    path: response.referenceCode
+    direction: output
+    importance: lineage
+    usageRole: identifier
+    semanticRef: long_code

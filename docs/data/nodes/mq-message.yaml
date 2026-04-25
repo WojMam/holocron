@@ -1,0 +1,36 @@
+id: mq_message
+label: Wysłanie komunikatu
+kind: endpoint
+technology: mq
+description: Wysyła komunikat inicjujący proces.
+uri: mq://topic/integration.order.request
+developerNotes: "Komunikat startowy wysyłany przez test integracyjny."
+
+elements:
+  - id: primary_ref
+    label: Primary Ref
+    path: message.primaryRef
+    direction: output
+    importance: lineage
+    usageRole: correlation_key
+    semanticRef: primary_ref
+    format: string
+    length: 10
+    notes: "Wartość śledząca cały proces."
+
+  - id: reference_code_9
+    label: Reference Code 9
+    path: message.referenceCode9
+    direction: output
+    importance: lineage
+    usageRole: handoff
+    semanticRef: reference_code_9
+    format: string
+    length: 9
+    notes: "9-znakowy numer referencyjny używany dalej."
+
+  - id: created_at
+    label: Created At
+    path: message.createdAt
+    direction: output
+    importance: descriptive

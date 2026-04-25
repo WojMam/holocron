@@ -1,0 +1,32 @@
+id: primary_ref_to_owner_name
+label: Primary Ref do Owner Name
+description: Pełny przepływ od komunikatu do danych właściciela.
+
+steps:
+  - node: xml_order_request
+    produces:
+      - xml_payload
+      - primary_ref
+
+  - node: mq_message
+    produces:
+      - primary_ref
+      - reference_code_9
+
+  - node: db_find_by_primary_ref
+    consumes:
+      - primary_ref
+    produces:
+      - secondary_id
+
+  - node: api_get_entity_by_secondary_id
+    consumes:
+      - secondary_id
+    produces:
+      - entity_id
+
+  - node: api_get_owner_by_entity_id
+    consumes:
+      - entity_id
+    produces:
+      - owner_name

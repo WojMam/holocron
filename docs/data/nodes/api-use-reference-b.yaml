@@ -1,0 +1,22 @@
+id: api_use_reference_b
+label: Endpoint B używający Reference Code 9
+kind: endpoint
+technology: api
+description: Używa 9-znakowego numeru referencyjnego do walidacji.
+uri: /api/partner-b/validate-reference
+developerNotes: "Pierwszy endpoint downstream."
+
+elements:
+  - id: reference_code_9_input
+    label: Reference Code 9
+    path: request.referenceCode9
+    direction: input
+    importance: lineage
+    usageRole: lookup_key
+    semanticRef: reference_code_9
+
+  - id: validation_status
+    label: Validation Status
+    path: response.status
+    direction: output
+    importance: descriptive

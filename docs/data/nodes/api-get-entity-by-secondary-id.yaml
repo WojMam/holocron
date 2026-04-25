@@ -1,0 +1,72 @@
+id: api_get_entity_by_secondary_id
+label: Pobranie encji po Secondary ID
+kind: endpoint
+technology: api
+description: Zwraca identyfikator encji.
+uri: /api/entities/by-secondary-id
+developerNotes: "Endpoint lookup."
+implementationFiles:
+  - role: input_model
+    label: Input model
+    path: src/test/java/com/example/integration/entity/model/EntityLookupRequest.java
+    details: Model wejściowy dla secondaryId i kontekstu requestu.
+  - role: output_mapper
+    label: Output mapper
+    path: src/test/java/com/example/integration/entity/mapper/EntityLookupResponseMapper.java
+    details: Mapuje odpowiedź API do modelu testowego.
+  - role: client
+    label: API client
+    path: src/test/java/com/example/integration/entity/client/EntityLookupClient.java
+    details: Klient HTTP wykorzystywany przez testy integracyjne.
+
+elements:
+  - id: secondary_id_input
+    label: Secondary ID
+    path: request.secondaryId
+    direction: input
+    importance: lineage
+    usageRole: lookup_key
+    semanticRef: secondary_id
+
+  - id: entity_id_output
+    label: Entity ID
+    path: response.entityId
+    direction: output
+    importance: lineage
+    usageRole: identifier
+    semanticRef: entity_id
+
+  - id: requester_id_input
+    label: Requester ID
+    path: request.requesterId
+    direction: input
+    importance: descriptive
+    usageRole: context
+
+  - id: tenant_code_input
+    label: Tenant Code
+    path: request.tenantCode
+    direction: input
+    importance: descriptive
+    usageRole: context
+
+  - id: include_inactive_input
+    label: Include Inactive
+    path: request.includeInactive
+    direction: input
+    importance: descriptive
+    usageRole: option
+
+  - id: entity_type_output
+    label: Entity Type
+    path: response.entityType
+    direction: output
+    importance: descriptive
+    usageRole: business_value
+
+  - id: confidence_score_output
+    label: Confidence Score
+    path: response.confidenceScore
+    direction: output
+    importance: descriptive
+    usageRole: quality_metric

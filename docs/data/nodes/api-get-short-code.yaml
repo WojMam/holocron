@@ -1,0 +1,37 @@
+id: api_get_short_code
+label: Pobranie krótkiego kodu
+kind: endpoint
+technology: api
+description: Zwraca krótki kod referencyjny.
+uri: /api/reference/short-code
+developerNotes: "Konflikt etykiety z długim kodem."
+implementationFiles:
+  - role: input_mapper
+    label: Input mapper
+    path: src/test/java/com/example/integration/shortcode/ShortCodeRequestMapper.java
+    details: Mapuje dane wejściowe requestu testowego.
+  - role: output_model
+    label: Output model
+    path: src/test/java/com/example/integration/shortcode/model/ShortCodeResponseModel.java
+    details: Reprezentuje payload odpowiedzi endpointu.
+  - role: factory
+    label: Factory
+    path: src/test/java/com/example/integration/shortcode/factory/ShortCodeScenarioFactory.java
+    details: Buduje scenariusz i obsługuje wywołanie endpointu.
+
+elements:
+  - id: short_code_output
+    label: Reference Code
+    path: response.code
+    direction: output
+    importance: lineage
+    usageRole: identifier
+    semanticRef: short_code
+
+  - id: reference_code_9_output
+    label: Reference Code 9
+    path: response.referenceCode9
+    direction: output
+    importance: lineage
+    usageRole: handoff
+    semanticRef: reference_code_9

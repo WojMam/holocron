@@ -1,0 +1,6 @@
+id: primary_ref
+label: Primary Ref
+description: Główny identyfikator inicjujący proces.
+format: string
+examples:
+  - "PR-123456"

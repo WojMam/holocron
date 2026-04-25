@@ -1,0 +1,6 @@
+id: xml_payload
+label: XML Payload
+description: Surowy dokument XML używany jako payload komunikatu MQ.
+format: xml
+examples:
+  - "<OrderRequest><Header><PrimaryRef>PR-123456</PrimaryRef></Header></OrderRequest>"

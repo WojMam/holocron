@@ -1,0 +1,9 @@
+id: reference_code_9
+label: Reference Code 9
+description: Numer referencyjny o długości 9 znaków, przekazywany między endpointami.
+format: string
+length: 9
+examples:
+  - "ABC12D3E4"
+aliases:
+  - ref9

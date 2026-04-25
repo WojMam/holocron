@@ -1,0 +1,6 @@
+id: owner_name
+label: Owner Name
+description: Nazwa właściciela encji.
+format: string
+examples:
+  - "Jan Kowalski"

@@ -1,0 +1,24 @@
+id: db_store_reference_y
+label: Zapis do tabeli Y
+kind: query
+technology: db
+description: Utrwala numer referencyjny i ownera.
+table: integration_reference_y
+developerNotes: "Tabela audytowa dla numerów referencyjnych."
+
+elements:
+  - id: reference_code_9_input
+    label: Reference Code 9
+    path: table.reference_code_9
+    direction: output
+    importance: lineage
+    usageRole: persisted_value
+    semanticRef: reference_code_9
+
+  - id: owner_name_input
+    label: Owner Name
+    path: table.owner_name
+    direction: output
+    importance: lineage
+    usageRole: persisted_value
+    semanticRef: owner_name

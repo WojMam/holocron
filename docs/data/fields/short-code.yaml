@@ -1,0 +1,7 @@
+id: short_code
+label: Reference Code
+description: Krótki kod referencyjny (np. 8 znaków).
+format: string
+length: 8
+examples:
+  - "AB12CD34"

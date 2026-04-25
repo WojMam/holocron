@@ -1,0 +1,24 @@
+id: xml_order_request
+label: XML Order Request
+kind: document
+technology: xml
+description: Konkretna struktura XML wysyłana na MQ.
+documentType: integration.order.request.v1.xml
+developerNotes: "Model dokumentu wejściowego."
+
+elements:
+  - id: xml_payload
+    label: XML Payload
+    path: /OrderRequest
+    direction: output
+    importance: descriptive
+    usageRole: payload
+    semanticRef: xml_payload
+
+  - id: xml_primary_ref
+    label: Primary Ref
+    path: /OrderRequest/Header/PrimaryRef
+    direction: output
+    importance: lineage
+    usageRole: correlation_key
+    semanticRef: primary_ref
