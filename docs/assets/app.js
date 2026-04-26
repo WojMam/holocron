@@ -30,6 +30,7 @@
     searchQuery: "",
     kindFilter: "all",
     errors: [],
+    planner: createPlannerState(),
   };
 
   start().catch((error) => {
@@ -46,6 +47,7 @@
     state.selectedFieldId = dataset.fields[0] ? dataset.fields[0].id : null;
     state.selectedFlowId = dataset.flows[0] ? dataset.flows[0].id : null;
     state.index = buildSearchIndex(dataset);
+    state.planner = createPlannerState();
     bindEvents();
     render();
     setStatus("Gotowe");
@@ -74,8 +76,19 @@
         state.selectedElement = null;
         state.highlightedTargets.clear();
         SELECTORS.fieldUsageBanner.classList.add("hidden");
+        state.planner.previewNodeId = null;
+        if (mode === "planner") {
+          setStatus("Tryb planner: użyj + aby budować flow.");
+        }
         render();
       });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && state.planner.previewNodeId) {
+        state.planner.previewNodeId = null;
+        render();
+      }
     });
   }
 
@@ -150,8 +163,30 @@
       maps,
       indexes: {
         usageByField: indexFieldUsages(nodes, fields),
+        plannerNodeIO: indexPlannerNodeIO(nodes),
       },
     };
+  }
+
+  function indexPlannerNodeIO(nodes) {
+    const out = {};
+    for (const node of nodes) {
+      const inputs = new Set();
+      const outputs = new Set();
+      for (const element of node.elements) {
+        const ref = element.semanticRef;
+        if (!ref) {
+          continue;
+        }
+        if (element.direction === "input") {
+          inputs.add(ref);
+        } else if (element.direction === "output") {
+          outputs.add(ref);
+        }
+      }
+      out[node.id] = { inputs, outputs };
+    }
+    return out;
   }
 
   function indexFieldUsages(nodes, fields) {
@@ -292,6 +327,7 @@
     renderCatalog();
     renderCenterContent();
     renderBreadcrumbs();
+    renderPlannerNodePreviewModal();
   }
 
   function renderViewModeButtons() {
@@ -305,6 +341,7 @@
       cards: { title: "Katalog kart", label: "Szukaj kart", placeholder: "API, DB, MQ, XML...", showKind: true },
       fields: { title: "Katalog pól", label: "Szukaj pól", placeholder: "Field, format, opis...", showKind: false },
       flows: { title: "Katalog flow", label: "Szukaj flow", placeholder: "Flow, krok, node...", showKind: false },
+      planner: { title: "Node'y planera", label: "Szukaj node'ów", placeholder: "Node, API, DB, MQ...", showKind: false },
     }[state.activeView];
 
     SELECTORS.catalogTitle.textContent = config.title;
@@ -344,6 +381,17 @@
         renderBreadcrumbs();
       }, state.selectedFlowId === flow.id));
     });
+    if (state.activeView !== "planner") {
+      return;
+    }
+
+    SELECTORS.catalogList.innerHTML = "";
+    filteredNodes().forEach((node) => {
+      SELECTORS.catalogList.appendChild(catalogButton(node.id, node.label || node.id, node.technology || "node", () => {
+        state.planner.previewNodeId = node.id;
+        renderPlannerNodePreviewModal();
+      }, state.planner.previewNodeId === node.id));
+    });
   }
 
   function catalogButton(id, title, subtitle, onClick, isActive) {
@@ -374,6 +422,14 @@
       SELECTORS.inspectorTitle.textContent = "Użycia pola";
       renderSelectedField();
       renderFieldInspector();
+      return;
+    }
+    if (state.activeView === "planner") {
+      SELECTORS.selectedTitle.textContent = "Flow Planner";
+      SELECTORS.inspectorTitle.textContent = "YAML preview";
+      SELECTORS.fieldUsageBanner.classList.add("hidden");
+      renderPlannerCanvas();
+      renderPlannerInspector();
       return;
     }
     SELECTORS.selectedTitle.textContent = "Wybrany flow";
@@ -694,6 +750,674 @@
     });
   }
 
+  function createPlannerState() {
+    return {
+      graphNodes: {},
+      edges: [],
+      nextGraphNodeNumber: 1,
+      pendingAttach: null,
+      previewNodeId: null,
+      mainPathRootGraphNodeId: null,
+      flowMeta: {
+        id: "planner-generated-flow",
+        label: "Planner Generated Flow",
+        description: "Flow wygenerowany z Flow Planner.",
+      },
+    };
+  }
+
+  function plannerGraphNodeById(graphNodeId) {
+    return state.planner.graphNodes[graphNodeId] || null;
+  }
+
+  function plannerGraphNodeEntries() {
+    return Object.values(state.planner.graphNodes);
+  }
+
+  function addPlannerNode(targetGraphNodeId, side, dataNodeId) {
+    const graphNodeId = `p${state.planner.nextGraphNodeNumber++}`;
+    state.planner.graphNodes[graphNodeId] = {
+      graphNodeId,
+      dataNodeId,
+      createdAt: Date.now(),
+    };
+
+    if (targetGraphNodeId) {
+      const target = plannerGraphNodeById(targetGraphNodeId);
+      if (target) {
+        const mainPath = plannerMainPathGraphNodeIds();
+        const targetMainPathIndex = mainPath.indexOf(targetGraphNodeId);
+        const isMainPathTarget = targetMainPathIndex !== -1;
+        const isStartInsert = side === "before" && targetMainPathIndex === 0;
+        const isEndInsert = side === "after" && targetMainPathIndex === mainPath.length - 1;
+        if (isMainPathTarget && !isStartInsert && !isEndInsert) {
+          setStatus("Dodawanie działa tylko na początku lub końcu głównej ścieżki.");
+          delete state.planner.graphNodes[graphNodeId];
+          state.planner.nextGraphNodeNumber -= 1;
+          return;
+        }
+        const bridge = plannerMainPathBridgeForTarget(targetGraphNodeId, side);
+        if (side === "after") {
+          const newIncoming = {
+            fromGraphNodeId: target.graphNodeId,
+            toGraphNodeId: graphNodeId,
+            sharedFields: sharedOutputToInputFields(target.dataNodeId, dataNodeId),
+          };
+          const newOutgoing =
+            bridge && bridge.nextGraphNodeId
+              ? {
+                  fromGraphNodeId: graphNodeId,
+                  toGraphNodeId: bridge.nextGraphNodeId,
+                  sharedFields: sharedOutputToInputFields(
+                    dataNodeId,
+                    plannerGraphNodeById(bridge.nextGraphNodeId)?.dataNodeId,
+                  ),
+                }
+              : null;
+
+          if (bridge) {
+            state.planner.edges = state.planner.edges.filter(
+              (edge) =>
+                !(
+                  edge.fromGraphNodeId === bridge.currentGraphNodeId &&
+                  edge.toGraphNodeId === bridge.nextGraphNodeId
+                ),
+            );
+          }
+          state.planner.edges.push(newIncoming);
+          if (newOutgoing) {
+            state.planner.edges.push(newOutgoing);
+          }
+        } else {
+          const newIncoming =
+            bridge && bridge.previousGraphNodeId
+              ? {
+                  fromGraphNodeId: bridge.previousGraphNodeId,
+                  toGraphNodeId: graphNodeId,
+                  sharedFields: sharedOutputToInputFields(
+                    plannerGraphNodeById(bridge.previousGraphNodeId)?.dataNodeId,
+                    dataNodeId,
+                  ),
+                }
+              : null;
+          const newOutgoing = {
+            fromGraphNodeId: graphNodeId,
+            toGraphNodeId: target.graphNodeId,
+            sharedFields: sharedOutputToInputFields(dataNodeId, target.dataNodeId),
+          };
+
+          if (bridge) {
+            state.planner.edges = state.planner.edges.filter(
+              (edge) =>
+                !(
+                  edge.fromGraphNodeId === bridge.previousGraphNodeId &&
+                  edge.toGraphNodeId === bridge.currentGraphNodeId
+                ),
+            );
+          }
+          if (newIncoming) {
+            state.planner.edges.push(newIncoming);
+          }
+          state.planner.edges.push(newOutgoing);
+
+          // Inserting before the first node in main path must move the root,
+          // otherwise the new node looks like a detached branch.
+          if (targetMainPathIndex === 0) {
+            state.planner.mainPathRootGraphNodeId = graphNodeId;
+          }
+        }
+      }
+    }
+
+    if (!state.planner.mainPathRootGraphNodeId) {
+      state.planner.mainPathRootGraphNodeId = graphNodeId;
+    }
+    state.planner.pendingAttach = null;
+  }
+
+  function removePlannerNode(graphNodeId) {
+    delete state.planner.graphNodes[graphNodeId];
+    state.planner.edges = state.planner.edges.filter(
+      (edge) => edge.fromGraphNodeId !== graphNodeId && edge.toGraphNodeId !== graphNodeId,
+    );
+    if (state.planner.mainPathRootGraphNodeId === graphNodeId) {
+      const first = plannerGraphNodeEntries()[0];
+      state.planner.mainPathRootGraphNodeId = first ? first.graphNodeId : null;
+    }
+    if (state.planner.pendingAttach && state.planner.pendingAttach.targetGraphNodeId === graphNodeId) {
+      state.planner.pendingAttach = null;
+    }
+  }
+
+  function sharedOutputToInputFields(sourceDataNodeId, targetDataNodeId) {
+    const source = state.dataset.indexes.plannerNodeIO[sourceDataNodeId];
+    const target = state.dataset.indexes.plannerNodeIO[targetDataNodeId];
+    if (!source || !target) {
+      return [];
+    }
+    const matches = [];
+    for (const ref of source.outputs) {
+      if (target.inputs.has(ref)) {
+        matches.push(ref);
+      }
+    }
+    return matches;
+  }
+
+  function plannerCandidates(targetGraphNodeId, side) {
+    const target = plannerGraphNodeById(targetGraphNodeId);
+    if (!target) {
+      return [];
+    }
+    const bridge = plannerMainPathBridgeForTarget(targetGraphNodeId, side);
+    return filteredNodes()
+      .map((node) => {
+        const shared =
+          side === "after"
+            ? sharedOutputToInputFields(target.dataNodeId, node.id)
+            : sharedOutputToInputFields(node.id, target.dataNodeId);
+        const bridgeShared =
+          side === "after"
+            ? bridge && bridge.nextGraphNodeId
+              ? sharedOutputToInputFields(node.id, plannerGraphNodeById(bridge.nextGraphNodeId)?.dataNodeId)
+              : []
+            : bridge && bridge.previousGraphNodeId
+              ? sharedOutputToInputFields(plannerGraphNodeById(bridge.previousGraphNodeId)?.dataNodeId, node.id)
+              : [];
+        return { node, shared, bridgeShared };
+      })
+      .filter((entry) => {
+        if (!entry.shared.length) {
+          return false;
+        }
+        if (!bridge) {
+          return true;
+        }
+        return entry.bridgeShared.length > 0;
+      })
+      .sort((a, b) => b.shared.length + b.bridgeShared.length - (a.shared.length + a.bridgeShared.length) || a.node.id.localeCompare(b.node.id));
+  }
+
+  function renderPlannerCanvas() {
+    const nodes = plannerGraphNodeEntries();
+    const pending = state.planner.pendingAttach;
+    if (!nodes.length) {
+      const starterCandidates = filteredNodes()
+        .map((node) => {
+          const io = state.dataset.indexes.plannerNodeIO[node.id];
+          const score = (io ? io.inputs.size : 0) + (io ? io.outputs.size : 0);
+          return { node, score };
+        })
+        .sort((a, b) => b.score - a.score || a.node.id.localeCompare(b.node.id))
+        .slice(0, 12);
+      SELECTORS.selectedCardPanel.innerHTML = `
+        <div class="planner-empty">
+          <p class="note">Dodaj pierwszy node, aby zacząć budować flow.</p>
+          <button type="button" class="entity-button" data-planner-add-first="1">+ Dodaj pierwszy node</button>
+          ${
+            pending && pending.targetGraphNodeId === null
+              ? `<div class="planner-candidates">
+              ${starterCandidates
+                .map(
+                  ({ node }) => `
+                    <button type="button" class="entity-button usage-link" data-planner-candidate="${escapeHtml(
+                      node.id,
+                    )}" data-planner-target="" data-planner-side="after">
+                      ${escapeHtml(node.label || node.id)}
+                      <small>${escapeHtml(node.technology || "node")}</small>
+                    </button>
+                  `,
+                )
+                .join("")}
+            </div>`
+              : ""
+          }
+        </div>
+      `;
+      bindPlannerCanvasEvents();
+      return;
+    }
+
+    const mainPath = plannerMainPathGraphNodeIds();
+    const mainSet = new Set(mainPath);
+    const laneParts = [];
+    if (mainPath.length) {
+      const firstId = mainPath[0];
+      const lastId = mainPath[mainPath.length - 1];
+      const startActive = pending && pending.targetGraphNodeId === firstId && pending.side === "before";
+      const endActive = pending && pending.targetGraphNodeId === lastId && pending.side === "after";
+      laneParts.push(`
+        <button type="button" class="planner-slot ${startActive ? "active" : ""}" data-planner-slot-target="${escapeHtml(firstId)}" data-planner-slot-side="before" aria-label="Dodaj node przed pierwszym">+</button>
+      `);
+
+      mainPath.forEach((graphNodeId) => {
+        const graphNode = plannerGraphNodeById(graphNodeId);
+        if (!graphNode) {
+          return;
+        }
+        const dataNode = state.dataset.maps.nodesById[graphNode.dataNodeId];
+        const isRoot = state.planner.mainPathRootGraphNodeId === graphNode.graphNodeId;
+        const topBranches = plannerBranchMiniItems(graphNode.graphNodeId, "top", mainSet);
+        const bottomBranches = plannerBranchMiniItems(graphNode.graphNodeId, "bottom", mainSet);
+
+        laneParts.push(`
+          <article class="planner-mini-card ${isRoot ? "root" : ""}">
+            <div class="planner-branch-row top">${topBranches}</div>
+            <div class="planner-mini-title">${escapeHtml(dataNode ? dataNode.label || dataNode.id : graphNode.dataNodeId)}</div>
+            <div class="planner-mini-meta">${escapeHtml(graphNode.dataNodeId)}</div>
+            <div class="planner-mini-actions">
+              <button type="button" data-planner-set-root="${escapeHtml(graphNode.graphNodeId)}">${isRoot ? "Root" : "Ustaw root"}</button>
+              <button type="button" data-planner-remove="${escapeHtml(graphNode.graphNodeId)}">Usuń</button>
+            </div>
+            <div class="planner-branch-row bottom">${bottomBranches}</div>
+          </article>
+        `);
+      });
+
+      laneParts.push(`
+        <button type="button" class="planner-slot ${endActive ? "active" : ""}" data-planner-slot-target="${escapeHtml(lastId)}" data-planner-slot-side="after" aria-label="Dodaj node po ostatnim">+</button>
+      `);
+    }
+
+    SELECTORS.selectedCardPanel.innerHTML = `
+      <div class="planner-topbar">
+        <button type="button" class="entity-button" data-planner-clear="1">Wyczyść planszę</button>
+      </div>
+      <div class="planner-lane-wrap">
+        <div class="planner-lane">${laneParts.join("")}</div>
+      </div>
+      ${
+        pending && pending.targetGraphNodeId
+          ? `<div class="planner-candidates planner-candidates-floating">
+              <h5>Kompatybilne node'y (${pending.side === "before" ? "przed" : "po"})</h5>
+              ${plannerCandidatesHtml(pending.targetGraphNodeId, pending.side)}
+            </div>`
+          : ""
+      }
+    `;
+
+    bindPlannerCanvasEvents();
+  }
+
+  function plannerCandidatesHtml(targetGraphNodeId, side) {
+    const candidates = plannerCandidates(targetGraphNodeId, side);
+    if (!candidates.length) {
+      return `<p class="meta">Brak kompatybilnych node'ów dla kierunku: ${side === "after" ? "po" : "przed"}.</p>`;
+    }
+    return candidates
+      .map(
+        ({ node, shared }) => `
+          <button type="button" class="entity-button usage-link" data-planner-candidate="${escapeHtml(node.id)}" data-planner-target="${escapeHtml(
+            targetGraphNodeId,
+          )}" data-planner-side="${escapeHtml(side)}">
+            ${escapeHtml(node.label || node.id)}
+            <small>Wspólne pola: ${escapeHtml(shared.slice(0, 3).join(", "))}${shared.length > 3 ? "..." : ""}</small>
+          </button>
+        `,
+      )
+      .join("");
+  }
+
+  function plannerMainPathBridgeForTarget(targetGraphNodeId, side) {
+    const path = plannerMainPathGraphNodeIds();
+    const idx = path.indexOf(targetGraphNodeId);
+    if (idx === -1) {
+      return null;
+    }
+    if (side === "before" && idx > 0) {
+      return {
+        previousGraphNodeId: path[idx - 1],
+        currentGraphNodeId: path[idx],
+      };
+    }
+    if (side === "after" && idx < path.length - 1) {
+      return {
+        currentGraphNodeId: path[idx],
+        nextGraphNodeId: path[idx + 1],
+      };
+    }
+    return null;
+  }
+
+  function renderPlannerNodePreviewModal() {
+    const existing = document.getElementById("planner-node-preview-overlay");
+    if (existing) {
+      existing.remove();
+    }
+    if (state.activeView !== "planner" || !state.planner.previewNodeId) {
+      return;
+    }
+    const node = state.dataset.maps.nodesById[state.planner.previewNodeId];
+    if (!node) {
+      state.planner.previewNodeId = null;
+      return;
+    }
+    const inputCount = node.elements.filter((element) => element.direction === "input" && element.semanticRef).length;
+    const outputCount = node.elements.filter((element) => element.direction === "output" && element.semanticRef).length;
+    const inputElements = node.elements.filter((element) => element.direction === "input");
+    const outputElements = node.elements.filter((element) => element.direction === "output");
+
+    const overlay = document.createElement("div");
+    overlay.id = "planner-node-preview-overlay";
+    overlay.className = "planner-node-modal-overlay";
+    overlay.innerHTML = `
+      <div class="planner-node-modal" role="dialog" aria-modal="true" aria-label="Podgląd node'a planera">
+        <div class="card-head">
+          <div>
+            <div class="card-title">${escapeHtml(node.label || node.id)}</div>
+            <div class="meta">${escapeHtml(node.id)}</div>
+          </div>
+          <span class="tag">${escapeHtml(node.technology || node.kind || "node")}</span>
+        </div>
+        <p class="note">${escapeHtml(node.description || "Brak opisu.")}</p>
+        <div class="planner-node-stats">
+          <span class="field-pill inactive">input: ${inputCount}</span>
+          <span class="field-pill inactive">output: ${outputCount}</span>
+        </div>
+        ${node.uri ? `<p class="meta"><strong>URI:</strong> ${escapeHtml(node.uri)}</p>` : ""}
+        ${node.table ? `<p class="meta"><strong>Tabela:</strong> ${escapeHtml(node.table)}</p>` : ""}
+        ${node.documentType ? `<p class="meta"><strong>Dokument:</strong> ${escapeHtml(node.documentType)}</p>` : ""}
+        ${node.developerNotes ? `<p class="meta"><strong>Notatki:</strong> ${escapeHtml(node.developerNotes)}</p>` : ""}
+        <section class="field-group">
+          <h4>Input</h4>
+          <div class="field-list">${plannerPreviewFieldPills(inputElements)}</div>
+        </section>
+        <section class="field-group">
+          <h4>Output</h4>
+          <div class="field-list">${plannerPreviewFieldPills(outputElements)}</div>
+        </section>
+        <div class="planner-node-modal-actions">
+          <button type="button" data-planner-modal-close="1">Zamknij</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener("click", (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      if (target === overlay || target.closest("[data-planner-modal-close]")) {
+        state.planner.previewNodeId = null;
+        render();
+        return;
+      }
+    });
+  }
+
+  function plannerPreviewFieldPills(elements) {
+    if (!elements.length) {
+      return "<span class='meta'>brak</span>";
+    }
+    return elements
+      .map((element) => {
+        const semanticRef = element.semanticRef || "";
+        const field = semanticRef ? state.dataset.maps.fieldsById[semanticRef] : null;
+        const label = element.label || element.id || semanticRef || "pole";
+        const title = field
+          ? `${field.label || semanticRef}${field.description ? ` — ${field.description}` : ""}`
+          : semanticRef
+            ? `semanticRef: ${semanticRef}`
+            : label;
+        return `<span class="field-pill inactive" title="${escapeHtml(title)}">${escapeHtml(label)}</span>`;
+      })
+      .join("");
+  }
+
+  function plannerBranchMiniItems(mainGraphNodeId, position, mainSet) {
+    const branchEdges =
+      position === "top"
+        ? state.planner.edges.filter(
+            (edge) => edge.toGraphNodeId === mainGraphNodeId && !mainSet.has(edge.fromGraphNodeId),
+          )
+        : state.planner.edges.filter(
+            (edge) => edge.fromGraphNodeId === mainGraphNodeId && !mainSet.has(edge.toGraphNodeId),
+          );
+
+    if (!branchEdges.length) {
+      return "<span class='planner-branch-placeholder'></span>";
+    }
+
+    return branchEdges
+      .map((edge) => {
+        const branchGraphNodeId = position === "top" ? edge.fromGraphNodeId : edge.toGraphNodeId;
+        const branchGraphNode = plannerGraphNodeById(branchGraphNodeId);
+        if (!branchGraphNode) {
+          return "";
+        }
+        const branchNode = state.dataset.maps.nodesById[branchGraphNode.dataNodeId];
+        const label = branchNode ? branchNode.label || branchNode.id : branchGraphNode.dataNodeId;
+        const id = branchNode ? branchNode.id : branchGraphNode.dataNodeId;
+        const shared = (edge.sharedFields || []).slice(0, 2).join(", ");
+        return `
+          <button type="button" class="planner-branch-mini" data-planner-set-root="${escapeHtml(branchGraphNodeId)}" title="${escapeHtml(
+            `${label}${shared ? ` (${shared})` : ""}`,
+          )}">
+            <span class="planner-branch-mini-id">${escapeHtml(id)}</span>
+            <span class="planner-branch-mini-details">${escapeHtml(label)}${shared ? ` • ${escapeHtml(shared)}` : ""}</span>
+          </button>
+        `;
+      })
+      .join("");
+  }
+
+  function plannerEdgesHtml() {
+    if (!state.planner.edges.length) {
+      return "<p class='meta'>Brak krawędzi. Dodaj kolejne node'y przyciskami +.</p>";
+    }
+    return state.planner.edges
+      .map((edge) => {
+        const from = plannerGraphNodeById(edge.fromGraphNodeId);
+        const to = plannerGraphNodeById(edge.toGraphNodeId);
+        if (!from || !to) {
+          return "";
+        }
+        const fromNode = state.dataset.maps.nodesById[from.dataNodeId];
+        const toNode = state.dataset.maps.nodesById[to.dataNodeId];
+        return `<p class="meta">${escapeHtml(fromNode ? fromNode.id : from.dataNodeId)} -> ${escapeHtml(
+          toNode ? toNode.id : to.dataNodeId,
+        )} <span class="muted">(${escapeHtml((edge.sharedFields || []).slice(0, 2).join(", ") || "bez pól")})</span></p>`;
+      })
+      .join("");
+  }
+
+  function bindPlannerCanvasEvents() {
+    const clearButton = SELECTORS.selectedCardPanel.querySelector("[data-planner-clear]");
+    if (clearButton) {
+      clearButton.addEventListener("click", () => {
+        state.planner = createPlannerState();
+        render();
+      });
+    }
+
+    SELECTORS.selectedCardPanel.querySelectorAll("[data-planner-slot-target]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const targetGraphNodeId = button.getAttribute("data-planner-slot-target");
+        const side = button.getAttribute("data-planner-slot-side");
+        if (!targetGraphNodeId || !side) {
+          return;
+        }
+        state.planner.pendingAttach = { targetGraphNodeId, side };
+        render();
+      });
+    });
+
+    SELECTORS.selectedCardPanel.querySelectorAll("[data-planner-remove]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const graphNodeId = button.getAttribute("data-planner-remove");
+        if (!graphNodeId) {
+          return;
+        }
+        removePlannerNode(graphNodeId);
+        render();
+      });
+    });
+
+    SELECTORS.selectedCardPanel.querySelectorAll("[data-planner-set-root]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const graphNodeId = button.getAttribute("data-planner-set-root");
+        if (!graphNodeId) {
+          return;
+        }
+        state.planner.mainPathRootGraphNodeId = graphNodeId;
+        render();
+      });
+    });
+
+    SELECTORS.selectedCardPanel.querySelectorAll("[data-planner-candidate]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const dataNodeId = button.getAttribute("data-planner-candidate");
+        const targetGraphNodeId = button.getAttribute("data-planner-target");
+        const side = button.getAttribute("data-planner-side");
+        if (!dataNodeId || !side) {
+          return;
+        }
+        addPlannerNode(targetGraphNodeId, side, dataNodeId);
+        render();
+      });
+    });
+
+    const addFirstButton = SELECTORS.selectedCardPanel.querySelector("[data-planner-add-first]");
+    if (addFirstButton) {
+      addFirstButton.addEventListener("click", () => {
+        state.planner.pendingAttach = { targetGraphNodeId: null, side: "after" };
+        render();
+      });
+    }
+  }
+
+  function renderPlannerInspector() {
+    const yaml = plannerYamlPreview();
+    SELECTORS.inspectorPanel.innerHTML = `
+      <div class="planner-yaml-tools">
+        <label class="label" for="planner-flow-id">Flow id</label>
+        <input id="planner-flow-id" type="text" value="${escapeHtml(state.planner.flowMeta.id)}" />
+        <label class="label" for="planner-flow-label">Flow label</label>
+        <input id="planner-flow-label" type="text" value="${escapeHtml(state.planner.flowMeta.label)}" />
+        <label class="label" for="planner-flow-description">Opis</label>
+        <input id="planner-flow-description" type="text" value="${escapeHtml(state.planner.flowMeta.description)}" />
+        <button type="button" class="entity-button" data-planner-save-yaml="1">Zapisz YAML</button>
+      </div>
+      <pre class="planner-yaml-preview">${escapeHtml(yaml)}</pre>
+    `;
+
+    const idInput = SELECTORS.inspectorPanel.querySelector("#planner-flow-id");
+    const labelInput = SELECTORS.inspectorPanel.querySelector("#planner-flow-label");
+    const descriptionInput = SELECTORS.inspectorPanel.querySelector("#planner-flow-description");
+    const saveButton = SELECTORS.inspectorPanel.querySelector("[data-planner-save-yaml]");
+
+    if (idInput) {
+      idInput.addEventListener("input", () => {
+        state.planner.flowMeta.id = idInput.value.trim() || "planner-generated-flow";
+        renderPlannerInspector();
+      });
+    }
+    if (labelInput) {
+      labelInput.addEventListener("input", () => {
+        state.planner.flowMeta.label = labelInput.value.trim() || "Planner Generated Flow";
+        renderPlannerInspector();
+      });
+    }
+    if (descriptionInput) {
+      descriptionInput.addEventListener("input", () => {
+        state.planner.flowMeta.description = descriptionInput.value.trim() || "Flow wygenerowany z Flow Planner.";
+        renderPlannerInspector();
+      });
+    }
+    if (saveButton) {
+      saveButton.addEventListener("click", savePlannerYaml);
+    }
+  }
+
+  function plannerYamlPreview() {
+    const mainPathGraphNodeIds = plannerMainPathGraphNodeIds();
+    const steps = mainPathGraphNodeIds
+      .map((graphNodeId) => plannerGraphNodeById(graphNodeId))
+      .filter(Boolean)
+      .map((graphNode) => graphNode.dataNodeId);
+    const lines = [
+      `id: ${yamlScalar(state.planner.flowMeta.id)}`,
+      `label: ${yamlScalar(state.planner.flowMeta.label)}`,
+      `description: ${yamlScalar(state.planner.flowMeta.description)}`,
+      "steps:",
+    ];
+    if (!steps.length) {
+      lines.push("  []");
+    } else {
+      steps.forEach((stepNodeId) => {
+        lines.push(`  - node: ${yamlScalar(stepNodeId)}`);
+      });
+    }
+    return lines.join("\n");
+  }
+
+  function plannerMainPathGraphNodeIds() {
+    const root =
+      state.planner.mainPathRootGraphNodeId && plannerGraphNodeById(state.planner.mainPathRootGraphNodeId)
+        ? state.planner.mainPathRootGraphNodeId
+        : plannerGraphNodeEntries()[0]
+          ? plannerGraphNodeEntries()[0].graphNodeId
+          : null;
+    if (!root) {
+      return [];
+    }
+
+    const byFrom = {};
+    state.planner.edges.forEach((edge) => {
+      byFrom[edge.fromGraphNodeId] ||= [];
+      byFrom[edge.fromGraphNodeId].push(edge.toGraphNodeId);
+    });
+
+    const memo = {};
+    function longestPathFrom(nodeId, trail) {
+      if (trail.has(nodeId)) {
+        return [];
+      }
+      if (memo[nodeId]) {
+        return memo[nodeId];
+      }
+      const nextNodes = byFrom[nodeId] || [];
+      if (!nextNodes.length) {
+        memo[nodeId] = [nodeId];
+        return memo[nodeId];
+      }
+      const nextTrail = new Set(trail);
+      nextTrail.add(nodeId);
+      let best = [];
+      for (const nextNodeId of nextNodes) {
+        const path = longestPathFrom(nextNodeId, nextTrail);
+        if (path.length > best.length) {
+          best = path;
+        }
+      }
+      memo[nodeId] = [nodeId, ...best];
+      return memo[nodeId];
+    }
+
+    return longestPathFrom(root, new Set());
+  }
+
+  function savePlannerYaml() {
+    const yaml = plannerYamlPreview();
+    const blob = new Blob([yaml], { type: "text/yaml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const slug = (state.planner.flowMeta.id || "planner-generated-flow").replace(/[^a-zA-Z0-9_-]+/g, "-");
+    link.href = url;
+    link.download = `${slug}.yaml`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setStatus(`Pobrano plik: ${slug}.yaml`);
+  }
+
+  function yamlScalar(value) {
+    const normalized = String(value || "").replace(/\r?\n/g, " ").trim();
+    return `'${normalized.replace(/'/g, "''")}'`;
+  }
+
   function renderBreadcrumbs() {
     if (state.activeView === "cards") {
       const node = state.dataset.maps.nodesById[state.selectedCardId];
@@ -703,6 +1427,11 @@
     if (state.activeView === "fields") {
       const field = state.dataset.maps.fieldsById[state.selectedFieldId];
       SELECTORS.breadcrumbs.textContent = field ? `Katalog pól / ${field.id}` : "Katalog pól";
+      return;
+    }
+    if (state.activeView === "planner") {
+      const size = plannerGraphNodeEntries().length;
+      SELECTORS.breadcrumbs.textContent = `Flow Planner / ${size} node'ów / ${state.planner.edges.length} połączeń`;
       return;
     }
     const flow = state.dataset.maps.flowsById[state.selectedFlowId];
