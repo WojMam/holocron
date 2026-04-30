@@ -1,0 +1,133 @@
+Uzasadnienie biznesowe wykorzystania API Google Gemini
+1. Executive Summary
+
+Celem niniejszego dokumentu jest uzasadnienie potrzeby wykorzystania API Google Gemini w ramach prac zespołu nad różnymi podprojektami technologicznymi w obszarze testowania i przetwarzania danych w sektorze bankowym.
+
+Planowane wykorzystanie API zakłada budowę wewnętrznych narzędzi, które będą wykorzystywać modele AI do wspierania analizy danych, walidacji wyników oraz automatyzacji procesów testowych. Dostęp do API nie będzie wykorzystywany bezpośrednio przez wszystkich członków zespołu — zamiast tego powstaną dedykowane narzędzia i integracje, które będą enkapsulować logikę wykorzystania AI.
+
+Główne cele biznesowe:
+
+skrócenie czasu realizacji zadań analitycznych i testowych,
+poprawa jakości weryfikacji w krytycznych ścieżkach,
+redukcja błędów wynikających z manualnej analizy danych.
+2. Kontekst i potrzeba biznesowa
+
+Zespół realizuje równolegle wiele podprojektów, w których występują powtarzalne problemy:
+
+analiza dużych i złożonych struktur danych (XML, komunikaty bankowe),
+walidacja wyników przetwarzania po przejściu przez wiele systemów,
+ręczne porównywanie danych wejściowych i wyjściowych,
+interpretacja złożonych reguł biznesowych zapisanych w dokumentacji.
+
+Obecne podejście opiera się głównie na:
+
+ręcznej analizie,
+prostych porównaniach strukturalnych,
+ograniczonej automatyzacji.
+
+Prowadzi to do:
+
+dużej czasochłonności,
+ryzyka pominięcia nieoczywistych błędów,
+trudności w skalowaniu procesów.
+3. Proponowane zastosowania (Use Cases)
+3.1 Podprojekt SCR – inteligentna analiza komunikatów bankowych
+
+Zakres:
+
+przetwarzanie komunikatów typu CAMT (np. wyciągi bankowe w formacie XML),
+walidacja względem schematu XSD (poza zakresem AI),
+analiza semantyczna zmian względem wzorcowego komunikatu.
+
+Proponowane wykorzystanie AI:
+
+porównywanie nowego XML z wzorcowym XML w sposób semantyczny (nie tylko strukturalny),
+identyfikacja zmian istotnych biznesowo (np. zmiany liczby rekordów, wartości pól, logiki danych),
+klasyfikacja zmian:
+zgodne z oczekiwaniami,
+wymagające weryfikacji,
+potencjalnie błędne,
+wsparcie w utrzymaniu i rozszerzaniu wzorcowego XML (po zatwierdzeniu przez użytkownika).
+
+Efekt biznesowy:
+
+znaczące ograniczenie manualnej analizy,
+szybsze wykrywanie nieprawidłowości,
+lepsza kontrola jakości danych.
+3.2 Podprojekt PAF – walidacja reguł transformacji danych
+
+Zakres:
+
+testy end-to-end dla transakcji przetwarzanych przez wiele systemów,
+walidacja adresów hybrydowych oraz transformacji danych,
+wykorzystanie reguł opisanych w dokumentacji (np. system dokumentacji wewnętrznej typu Jira/Confluence).
+
+Proponowane wykorzystanie AI:
+
+interpretacja reguł biznesowych zapisanych w dokumentacji,
+porównanie danych wejściowych i wyjściowych transakcji,
+ocena zgodności wyników z zestawem reguł,
+identyfikacja przypadków niejednoznacznych lub wymagających analizy manualnej.
+
+Efekt biznesowy:
+
+automatyzacja weryfikacji złożonych scenariuszy,
+zmniejszenie zależności od manualnej interpretacji dokumentacji,
+poprawa spójności testów.
+3.3 Podprojekt ATAT – wsparcie frameworka testowego
+
+Zakres:
+
+framework testowy w języku Java,
+integracje z API, bazami danych oraz systemami kolejkowymi (np. Kafka),
+złożone scenariusze testowe i duża ilość danych.
+
+Potencjalne zastosowania AI:
+
+analiza wyników testów i logów,
+identyfikacja anomalii i niespójności,
+wspieranie debugowania (np. wskazywanie potencjalnych przyczyn błędów),
+generowanie sugestii dotyczących asercji lub brakujących przypadków testowych,
+agregacja danych z różnych źródeł (API, DB, Kafka) i ich interpretacja.
+
+Efekt biznesowy:
+
+skrócenie czasu analizy błędów,
+zwiększenie efektywności zespołu,
+lepsze pokrycie testowe i jakość frameworka.
+4. Model wykorzystania API
+API Google Gemini będzie wykorzystywane poprzez wewnętrzne narzędzia i komponenty,
+użytkownicy końcowi nie będą bezpośrednio tworzyć zapytań do modeli AI,
+logika promptów i interakcji z AI będzie centralnie zarządzana,
+możliwe będzie dostosowanie zachowania narzędzi do konkretnych podprojektów.
+
+Takie podejście:
+
+zwiększa kontrolę nad wykorzystaniem AI,
+minimalizuje ryzyko błędnego użycia,
+ułatwia audyt i utrzymanie.
+5. Korzyści biznesowe
+redukcja czasu analizy danych i wyników testów,
+poprawa jakości weryfikacji w krytycznych procesach,
+ograniczenie błędów ludzkich,
+zwiększenie skalowalności procesów testowych,
+lepsze wykorzystanie zasobów zespołu.
+6. Ryzyka i aspekty compliance
+
+Ze względu na charakter sektora bankowego, szczególną uwagę należy zwrócić na:
+
+przetwarzanie wyłącznie danych ze środowisk testowych,
+brak wykorzystania danych produkcyjnych,
+potencjalną obecność danych wrażliwych (np. imiona, nazwiska, numery kont),
+konieczność anonimizacji lub pseudonimizacji danych (jeśli wymagane),
+zgodność z politykami bezpieczeństwa i regulacjami wewnętrznymi.
+
+Dodatkowo:
+
+AI pełni rolę wspierającą — ostateczna decyzja należy do użytkownika,
+wyniki generowane przez AI mogą wymagać walidacji przez człowieka.
+7. Podsumowanie
+
+Wykorzystanie API Google Gemini stanowi naturalny krok w kierunku zwiększenia automatyzacji i jakości procesów testowych oraz analitycznych.
+
+Proponowane zastosowania są ukierunkowane na konkretne problemy biznesowe i mają potencjał przynieść wymierne korzyści w krótkim i średnim terminie, przy zachowaniu kontroli nad ryzykami wynikającymi z wykorzystania technologii AI.
